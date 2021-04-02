@@ -1,0 +1,7 @@
+{
+  "default": {
+    "name": "development",
+    "level": "debug",
+    "appenders": ["console", "file"]
+  }
+}
