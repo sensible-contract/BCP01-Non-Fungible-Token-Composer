@@ -115,10 +115,10 @@ library PayloadNFT {
     /* all data types */
    
     self.ownerPkh = Ripemd160(dataPart[ :  20]);
-    self.tokenId = unpack(dataPart[20 : 20 + 8]);
+    self.tokenId = Util.fromLEUnsigned(dataPart[20 : 20 + 8]);
     
     if(self.dataType == PayloadNFT.ISSUE){
-      self.totalSupply = unpack(dataPart[28 : 28 + 8]);
+      self.totalSupply = Util.fromLEUnsigned(dataPart[28 : 28 + 8]);
     }else if (self.dataType == PayloadNFT.TRANSFER) {
       self.metaTxId = dataPart[28 : 28 + 32];
     }
