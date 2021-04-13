@@ -14,7 +14,7 @@ const {
   toHex,
 } = require("scryptlib");
 const { PayloadNFT, ISSUE, TRANSFER } = require("./PayloadNFT");
-const { DataLen4, dummyTxId, ScriptHelper } = require("./ScriptHelper");
+const { DataLen4, ScriptHelper } = require("./ScriptHelper");
 const Signature = bsv.crypto.Signature;
 const sighashType =
   Signature.SIGHASH_ANYONECANPAY |
@@ -98,7 +98,9 @@ class NFT {
     }
 
     tx.change(utxoAddress);
-    tx.fee(Math.ceil(tx._estimateSize() * feeb));
+    tx.fee(
+      Math.ceil((tx.serialize(true).length / 2 + utxos.length * 107) * feeb)
+    );
     return tx;
   }
 
@@ -183,70 +185,80 @@ class NFT {
     }
 
     tx.change(utxoAddress);
-    tx.fee(Math.ceil((tx._estimateSize() + 4200) * feeb));
 
-    // 设置校验环境
-    const changeAmount = tx.outputs[tx.outputs.length - 1].satoshis;
     const curInputIndex = tx.inputs.length - 1;
-
     const curInputSatoshis = tx.inputs[curInputIndex].output.satoshis;
-
     const nftOutputSatoshis = tx.outputs[1].satoshis;
 
-    this.nft.txContext = {
-      tx: tx,
-      inputIndex: curInputIndex,
-      inputSatoshis: curInputSatoshis,
-    };
-
-    // 计算preimage
-    const preimage = getPreimage(
-      tx,
-      issuerLockingScript.toASM(),
-      curInputSatoshis,
-      curInputIndex,
-      sighashType
-    );
-
-    // 计算签名
-    let sigBuf = Buffer.alloc(71, 0);
-
-    // 获取Oracle签名
     let sigInfo = await ScriptHelper.signers[0].satoTxSigUTXOSpendBy(
       satotxData
     );
     let script = new bsv.Script(sigInfo.script);
     let preDataPartHex = ScriptHelper.getDataPartFromScript(script);
 
-    // 创建解锁
-    let contractObj = this.nft.issue(
-      new SigHashPreimage(toHex(preimage)),
-      BigInt("0x" + sigInfo.sigBE),
-      new Bytes(sigInfo.payload),
-      new Bytes(sigInfo.padding),
-      new Bytes(preDataPartHex),
-      new Bytes(
-        opreturnData
-          ? new bsv.Script.buildSafeDataOut(opreturnData).toHex()
-          : ""
-      ),
-      new Sig(sigBuf.toString("hex")),
-      new PubKey(toHex(issuerPk)),
-      new Bytes(metaTxId),
-      new Ripemd160(toHex(receiverAddress.hashBuffer)),
-      nftOutputSatoshis,
-      new Ripemd160(toHex(utxoAddress.hashBuffer)),
-      changeAmount
-    );
+    //let the fee to be exact in the second round
+    for (let c = 0; c < 2; c++) {
+      tx.fee(
+        Math.ceil((tx.serialize(true).length / 2 + utxos.length * 107) * feeb)
+      );
+      const changeAmount = tx.outputs[tx.outputs.length - 1].satoshis;
 
-    // console.log(tx.serialize());
-    // let ret = contractObj.verify();
-    // if (ret.success == false) {
-    //   console.error(ret);
-    // }
+      let sigBuf = Buffer.alloc(71, 0);
+      // let sigBuf = signTx(
+      //   tx,
+      //   new bsv.PrivateKey(
+      //     ""
+      //   ),
+      //   issuerLockingScript.toASM(),
+      //   ScriptHelper.getDustThreshold(issuerLockingScript.toBuffer().length),
+      //   curInputIndex,
+      //   sighashType
+      // );
 
-    const unlockingScript = contractObj.toScript();
-    tx.inputs[curInputIndex].setScript(unlockingScript);
+      this.nft.txContext = {
+        tx: tx,
+        inputIndex: curInputIndex,
+        inputSatoshis: curInputSatoshis,
+      };
+
+      const preimage = getPreimage(
+        tx,
+        issuerLockingScript.toASM(),
+        curInputSatoshis,
+        curInputIndex,
+        sighashType
+      );
+
+      let unlockingContract = this.nft.issue(
+        new SigHashPreimage(toHex(preimage)),
+        BigInt("0x" + sigInfo.sigBE),
+        new Bytes(sigInfo.payload),
+        new Bytes(sigInfo.padding),
+        new Bytes(preDataPartHex),
+        new Bytes(
+          opreturnData
+            ? new bsv.Script.buildSafeDataOut(opreturnData).toHex()
+            : ""
+        ),
+        new Sig(toHex(sigBuf)),
+        new PubKey(toHex(issuerPk)),
+        new Bytes(metaTxId),
+        new Ripemd160(toHex(receiverAddress.hashBuffer)),
+        nftOutputSatoshis,
+        new Ripemd160(toHex(utxoAddress.hashBuffer)),
+        changeAmount
+      );
+
+      // console.log(tx.serialize());
+      // let ret = unlockingContract.verify();
+      // if (ret.success == false) {
+      //   console.error(ret);
+      //   throw "end";
+      // }
+      // console.log("success");
+
+      tx.inputs[curInputIndex].setScript(unlockingContract.toScript());
+    }
 
     return tx;
   }
@@ -317,63 +329,59 @@ class NFT {
     }
 
     tx.change(utxoAddress);
-    tx.fee(Math.ceil((tx._estimateSize() + 4200) * feeb));
 
-    // 设置校验环境
-    const changeAmount = tx.outputs[tx.outputs.length - 1].satoshis;
     const curInputIndex = tx.inputs.length - 1;
-
     const curInputSatoshis = tx.inputs[curInputIndex].output.satoshis;
     const nftOutputSatoshis = tx.outputs[0].satoshis;
-
-    this.nft.txContext = {
-      tx: tx,
-      inputIndex: curInputIndex,
-      inputSatoshis: curInputSatoshis,
-    };
-
-    // 计算preimage
-    const preimage = getPreimage(
-      tx,
-      transferLockingScript.toASM(),
-      curInputSatoshis,
-      curInputIndex,
-      sighashType
-    );
-
-    // 计算签名
     let sigBuf = Buffer.alloc(71, 0);
-
-    // 获取Oracle签名
     let sigInfo = await ScriptHelper.signers[0].satoTxSigUTXOSpendBy(
       satotxData
     );
     let script = new bsv.Script(sigInfo.script);
     let preDataPartHex = ScriptHelper.getDataPartFromScript(script);
 
-    // 创建解锁
-    let contractObj = this.nft.issue(
-      new SigHashPreimage(toHex(preimage)),
-      BigInt("0x" + sigInfo.sigBE),
-      new Bytes(sigInfo.payload),
-      new Bytes(sigInfo.padding),
-      new Bytes(preDataPartHex),
-      new Bytes(
-        opreturnData
-          ? new bsv.Script.buildSafeDataOut(opreturnData).toHex()
-          : ""
-      ),
-      new Sig(sigBuf.toString("hex")),
-      new PubKey(toHex(senderPk)),
-      new Bytes(""),
-      new Ripemd160(toHex(receiverAddress.hashBuffer)),
-      nftOutputSatoshis,
-      new Ripemd160(toHex(utxoAddress.hashBuffer)),
-      changeAmount
-    );
+    for (let c = 0; c < 2; c++) {
+      tx.fee(
+        Math.ceil((tx.serialize(true).length / 2 + utxos.length * 107) * feeb)
+      );
+      const changeAmount = tx.outputs[tx.outputs.length - 1].satoshis;
 
-    const unlockingScript = contractObj.toScript();
-    tx.inputs[curInputIndex].setScript(unlockingScript);
+      this.nft.txContext = {
+        tx: tx,
+        inputIndex: curInputIndex,
+        inputSatoshis: curInputSatoshis,
+      };
+
+      const preimage = getPreimage(
+        tx,
+        transferLockingScript.toASM(),
+        curInputSatoshis,
+        curInputIndex,
+        sighashType
+      );
+
+      let unlockingContract = this.nft.issue(
+        new SigHashPreimage(toHex(preimage)),
+        BigInt("0x" + sigInfo.sigBE),
+        new Bytes(sigInfo.payload),
+        new Bytes(sigInfo.padding),
+        new Bytes(preDataPartHex),
+        new Bytes(
+          opreturnData
+            ? new bsv.Script.buildSafeDataOut(opreturnData).toHex()
+            : ""
+        ),
+        new Sig(sigBuf.toString("hex")),
+        new PubKey(toHex(senderPk)),
+        new Bytes(""),
+        new Ripemd160(toHex(receiverAddress.hashBuffer)),
+        nftOutputSatoshis,
+        new Ripemd160(toHex(utxoAddress.hashBuffer)),
+        changeAmount
+      );
+
+      tx.inputs[curInputIndex].setScript(unlockingContract.toScript());
+    }
 
     return tx;
   }
