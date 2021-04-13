@@ -4,7 +4,7 @@ const { NetMgr } = require("../domain/NetMgr");
 const { TokenTxHelper } = require("../lib/sensible_nft/TokenTxHelper");
 exports.default = function () {
   NetMgr.listen("POST", "/genesis", async function (req, res, params, body) {
-    const oracle = app.get("oracleConfig");
+    const signer = app.get("signerConfig");
     let {
       issuerPk,
       totalSupply,
@@ -16,7 +16,7 @@ exports.default = function () {
       network,
     } = body;
     return await TokenTxHelper.genesis({
-      satotxPubKey: oracle.satotxPubKey,
+      satotxPubKey: signer.satotxPubKey,
 
       issuerPk,
       totalSupply,
@@ -50,10 +50,10 @@ exports.default = function () {
       feeb,
       network,
     } = body;
-    const oracle = app.get("oracleConfig");
+    const signer = app.get("signerConfig");
 
     return await TokenTxHelper.issue({
-      satotxPubKey: oracle.satotxPubKey,
+      satotxPubKey: signer.satotxPubKey,
 
       genesisTxId,
       genesisOutputIndex,
@@ -77,7 +77,7 @@ exports.default = function () {
   });
 
   NetMgr.listen("POST", "/transfer", async function (req, res, params, body) {
-    const oracle = app.get("oracleConfig");
+    const signer = app.get("signerConfig");
     let {
       genesisTxId,
       genesisOutputIndex,
@@ -98,7 +98,7 @@ exports.default = function () {
       network,
     } = body;
     return await TokenTxHelper.transfer({
-      satotxPubKey: oracle.satotxPubKey,
+      satotxPubKey: signer.satotxPubKey,
 
       genesisTxId,
       genesisOutputIndex,

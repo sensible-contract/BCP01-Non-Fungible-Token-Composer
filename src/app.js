@@ -29,13 +29,13 @@ var app = exports.app;
 
     app.http.start();
 
-    app.loadConfig("oracleConfig", require("./config/oracle.json"));
-    const oracle = app.get("oracleConfig");
+    app.loadConfig("signerConfig", require("./config/signer.json"));
+    const signer = app.get("signerConfig");
 
     const { ScriptHelper } = require("./lib/sensible_nft/ScriptHelper");
     const { SatotxSigner } = require("./lib/sensible_nft/SatotxSigner");
     ScriptHelper.prepare([
-      new SatotxSigner(oracle.satotxApiPrefix, oracle.satotxPubKey),
+      new SatotxSigner(signer.satotxApiPrefix, signer.satotxPubKey),
     ]);
 
     console.log("start completed");

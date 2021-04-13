@@ -56,7 +56,7 @@ To run the node , you at least need
 Here is a example for config
 
 ```
-src/config/oracle.json
+src/config/signer.json
 {
   "default": {
     "satotxApiPrefix": "https://api.satotx.com",
