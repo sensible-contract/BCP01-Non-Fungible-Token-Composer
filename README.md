@@ -36,7 +36,7 @@ This project can help you to generate a BCP01-Non-Fungible-Token transaction tem
 		prefix 				(1 bytes)  	the data length coming：0x3d=61
 		token_pkh   		(20 bytes)  the owner's PublicKeyHash
 		token_id 			(8 bytes) 		the index of NFT
-		meta_txid 			(32 bytes)	the root txid of metaid, which show the stat of NFT
+		meta_txid 			(32 bytes)	the txid of metaid, which show the stat of NFT
 		data_type 			(1 bytes)  	data type,TRANSFER=01
 ```
 
