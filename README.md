@@ -35,7 +35,7 @@ This project can help you to generate a BCP01-Non-Fungible-Token transaction tem
 	[payload for TRANSFER](all 62 bytes)
 		prefix 				(1 bytes)  	the data length coming：0x3d=61
 		token_pkh   		(20 bytes)  the owner's PublicKeyHash
-		token_id 			(8 bytes) 		the index of NFT
+		token_id 			(8 bytes) 	the index of NFT
 		meta_txid 			(32 bytes)	the txid of metaid, which show the stat of NFT
 		data_type 			(1 bytes)  	data type,TRANSFER=01
 ```
@@ -44,7 +44,7 @@ This project can help you to generate a BCP01-Non-Fungible-Token transaction tem
 
 ```
 npm install
-npm gen-desc
+npm run gen-desc
 ```
 
 ## How to Run
@@ -52,8 +52,8 @@ npm gen-desc
 To run the node , you at least need
 
 - <a href="https://github.com/sensible-contract/satotx">satotx</a> support
-
-Here is a example for config
+- Make sure you have the sCrypt(0.6.1) Visual Studio Extension installed.
+  Here is a example for config
 
 ```
 src/config/signer.json
