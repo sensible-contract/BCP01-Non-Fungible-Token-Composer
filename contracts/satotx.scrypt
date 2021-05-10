@@ -2,7 +2,6 @@ import "util.scrypt";
 import "rabin.scrypt";
 
 /*
-
 * preTxOutpointPayload 包含了前一个Tx花费的某UTXO的相关内容，数据结构如下：
 *
 *     UTXOTxID+Index, value, scriptHash, SpendByTxID

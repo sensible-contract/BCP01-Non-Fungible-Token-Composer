@@ -24,7 +24,20 @@ import "util.scrypt";
  *  codePart, GenesisPart, ownerPkh, tokenId, satoshiAmount, SELL
  */
 
-struct PayloadNFTData {
+contract PayloadNFT {
+  /* 不同类型数据部分的长度 */
+  static const int genesisLen = 40;
+  static const int issueLen = 37;
+  static const int transferLen = 61;
+
+  /* OP_PUSHDATA 协议推送不同长度数据时，需要的前缀字节 */
+  static const bytes issuePrefix = b'25';
+  static const bytes transferPrefix = b'3d';
+
+  /* 数据类型dataType标记 */
+  static const bytes ISSUE = b'00';
+  static const bytes TRANSFER = b'01';
+
   /* 合约最后一块数据部分开始的字节下标，在第二个OP_PUSHDATA之后 */
   int dataStart;
 
@@ -42,11 +55,10 @@ struct PayloadNFTData {
   bytes genesisOutputIdx;
 
   /* 数据 */
-  bytes   metaTxId;
+  bytes metaTxId;
   Ripemd160 ownerPkh;
   int totalSupply;
   int tokenId;
- 
 
   /* swap 数据 */
   Sha256 codeWithGenesisPartHashSwap;
@@ -54,93 +66,82 @@ struct PayloadNFTData {
 
   /* sell 数据 */
   int satoshiAmountSell;
-}
 
-library PayloadNFT {
-
-  /* 不同类型数据部分的长度 */
-  static int genesisLen = 40;
-  static int issueLen = 37;
-  static int transferLen = 61;
-
-  /* OP_PUSHDATA 协议推送不同长度数据时，需要的前缀字节 */
-  static bytes issuePrefix = b'25';
-  static bytes transferPrefix = b'3d';
-
-  /* 数据类型dataType标记 */
-  static bytes ISSUE = b'00';
-  static bytes TRANSFER = b'01';
-
-  static function load(bytes scriptCode) : PayloadNFTData {
-    PayloadNFTData self = {
-      0,                        // int dataStart;
-      b'00',                    // bytes codePart;
-      b'00',                    // bytes codeWithGenesisPart;
-      b'00',                    // bytes dataType;
-      b'00',                    // bytes genesisOutpoint;
-      b'00',                    // bytes genesisOutputIdx;
-      b'00',                    // bytes meta txid;
-      Ripemd160(b'00'),         // Ripemd160 ownerPkh;
-      0,                        // int totalSupply;
-      0,                        // int tokenId;
-      Sha256(b'00'),            // Sha256 codeWithGenesisPartHashSwap;
-      0,                        // int amountSwap;
-      0                         // int satoshiAmountSell;
-    };
-
+  constructor(bytes scriptCode) {
     int scriptLen = len(scriptCode);
-    self.dataType = scriptCode[scriptLen - 1 : ];
+    this.dataType = scriptCode[scriptLen - 1 : ];
 
     int dataLen = 0;
     int prefixLen = 0;
-    if (self.dataType == PayloadNFT.ISSUE){
-      dataLen = PayloadNFT.issueLen;
-      prefixLen = len(PayloadNFT.issuePrefix);
-    }else if(self.dataType == PayloadNFT.TRANSFER){
-      dataLen = PayloadNFT.transferLen;
-      prefixLen = len(PayloadNFT.transferPrefix);
+    if (this.dataType == ISSUE) {
+      dataLen = issueLen;
+      prefixLen = len(issuePrefix);
+    }
+    else if (this.dataType == TRANSFER) {
+      dataLen = transferLen;
+      prefixLen = len(transferPrefix);
     }
 
     /* part */
-    self.dataStart = len(scriptCode) - dataLen;
-    self.codeWithGenesisPart = scriptCode[ : self.dataStart - prefixLen];
-    int codeWithGenesisLen = len(self.codeWithGenesisPart);
-    self.codePart = self.codeWithGenesisPart[ : codeWithGenesisLen - PayloadNFT.genesisLen];
+    this.dataStart = len(scriptCode) - dataLen;
+    this.codeWithGenesisPart = scriptCode[ : this.dataStart - prefixLen];
+    int codeWithGenesisLen = len(this.codeWithGenesisPart);
+    this.codePart = this.codeWithGenesisPart[ : codeWithGenesisLen - genesisLen];
     /* genesis */
-    self.genesisOutpoint = self.codeWithGenesisPart[codeWithGenesisLen - PayloadNFT.genesisLen : codeWithGenesisLen - 4];
-    self.genesisOutputIdx = self.codeWithGenesisPart[codeWithGenesisLen - 4 : ];
+    this.genesisOutpoint = this.codeWithGenesisPart[codeWithGenesisLen - genesisLen : codeWithGenesisLen - 4];
+    this.genesisOutputIdx = this.codeWithGenesisPart[codeWithGenesisLen - 4 : ];
     /* data */
-    bytes dataPart = scriptCode[self.dataStart : ];
+    bytes dataPart = scriptCode[this.dataStart : ];
 
     /* all data types */
-   
-    self.ownerPkh = Ripemd160(dataPart[ :  20]);
-    self.tokenId = Util.fromLEUnsigned(dataPart[20 : 20 + 8]);
-    
-    if(self.dataType == PayloadNFT.ISSUE){
-      self.totalSupply = Util.fromLEUnsigned(dataPart[28 : 28 + 8]);
-    }else if (self.dataType == PayloadNFT.TRANSFER) {
-      self.metaTxId = dataPart[28 : 28 + 32];
-    }
 
-    return self;
+    this.ownerPkh = Ripemd160(dataPart[ : 20]);
+    this.tokenId = Util.fromLEUnsigned(dataPart[20 : 20 + 8]);
+
+    if (this.dataType == ISSUE) {
+      this.totalSupply = Util.fromLEUnsigned(dataPart[28 : 28 + 8]);
+    }
+    else if (this.dataType == TRANSFER) {
+      this.metaTxId = dataPart[28 : 28 + 32];
+    }
   }
 
-  static function dump(PayloadNFTData self) : bytes {
+  public function setTokenId(int tokenId) {
+    this.tokenId = tokenId;
+    require(true);
+  }
+
+  public function setMetaTxId(bytes metaTxId) {
+    this.metaTxId = metaTxId;
+    require(true);
+  }
+
+  public function setOwnerPkh(Ripemd160 ownerPkh) {
+    this.ownerPkh = ownerPkh;
+    require(true);
+  }
+
+  public function setDataType(bytes dataType) {
+    this.dataType = dataType;
+    require(true);
+  }
+
+  function dump() : bytes {
     bytes payload = b'';
-    if(self.dataType == PayloadNFT.ISSUE){
-      payload = PayloadNFT.issuePrefix + 
-      self.ownerPkh +
-      num2bin(self.tokenId, Util.OutputValueLen) + 
-      num2bin(self.totalSupply, Util.OutputValueLen) + 
-      self.dataType;
-    }else if(self.dataType == PayloadNFT.TRANSFER){
-      payload = PayloadNFT.transferPrefix + 
-      self.ownerPkh +
-      num2bin(self.tokenId, Util.OutputValueLen) +
-      self.metaTxId +
-      self.dataType;
-    } 
-    return self.codeWithGenesisPart + payload;
+    if (this.dataType == ISSUE) {
+      payload = issuePrefix +
+      this.ownerPkh +
+      num2bin(this.tokenId, Util.OutputValueLen) +
+      num2bin(this.totalSupply, Util.OutputValueLen) +
+      this.dataType;
+    }
+    else if (this.dataType == TRANSFER) {
+      payload = transferPrefix +
+      this.ownerPkh +
+      num2bin(this.tokenId, Util.OutputValueLen) +
+      this.metaTxId +
+      this.dataType;
+    }
+    return this.codeWithGenesisPart + payload;
   }
 }

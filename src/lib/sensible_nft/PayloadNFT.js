@@ -21,7 +21,6 @@ class PayloadNFT {
    * @constructor
    *
    * @param {Object} params
-   * @param {String=} params.scriptCode 合约代码部分
    * @param {string} params.dataType 数据类型，1字节
    * @param {Ripemd160} params.ownerPkh 所属人
    * @param {number} params.tokenId tokenId
