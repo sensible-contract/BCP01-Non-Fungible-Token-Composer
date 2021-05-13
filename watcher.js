@@ -3,12 +3,16 @@ const { basename, join } = require("path");
 const { unlinkSync, existsSync } = require("fs");
 const { ScriptHelper } = require("./src/lib/sensible_nft/ScriptHelper");
 const { glob } = require("glob");
+let isDebug = false;
+if (process.argv.includes("--debug")) {
+  isDebug = true;
+}
 function compile_for(file) {
   const fileName = basename(file);
   if (fileName.endsWith(".scrypt")) {
     try {
       clean_description_file(fileName);
-      ScriptHelper.compileContract(fileName);
+      ScriptHelper.compileContract(fileName, isDebug);
     } catch (error) {
       console.log(error);
     }

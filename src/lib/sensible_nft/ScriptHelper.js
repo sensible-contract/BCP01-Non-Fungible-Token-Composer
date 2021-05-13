@@ -1,6 +1,6 @@
 require("./fix_bsv_in_scrypt");
 const { existsSync, readFileSync } = require("fs");
-const { compileContract, bsv, Sha256 } = require("scryptlib");
+const { compile, bsv, Sha256 } = require("scryptlib");
 const path = require("path");
 const BN = bsv.crypto.BN;
 
@@ -29,11 +29,20 @@ class ScriptHelper {
     return buf.toString("hex").match(/.{2}/g).reverse().join("");
   }
 
-  static compileContract(fileName) {
+  static compileContract(fileName, isDebug) {
     const filePath = path.join(this.contractScryptPath, fileName);
     const out = this.contractJsonPath;
 
-    const result = compileContract(filePath, out);
+    const result = compile(
+      { path: filePath },
+      {
+        desc: true,
+        debug: isDebug ? true : false,
+        sourceMap: isDebug ? true : false,
+        outputDir: out,
+      }
+    );
+
     if (result.errors.length > 0) {
       console.log(`Compile contract ${filePath} fail: `, result.errors);
       throw result.errors;
