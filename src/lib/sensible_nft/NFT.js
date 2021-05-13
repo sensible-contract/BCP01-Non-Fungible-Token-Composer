@@ -132,6 +132,8 @@ class NFT {
     pl.read(issuerLockingScript.toBuffer());
 
     pl.tokenId = pl.tokenId + 1n;
+
+    let reachTotalSupply = pl.tokenId >= pl.totalSupply;
     const newLockingScript0 = bsv.Script.fromASM(
       [this.nftCodePart, this.nftGenesisPart, pl.dump()].join(" ")
     );
@@ -156,15 +158,16 @@ class NFT {
         script: bsv.Script.empty(),
       })
     );
-
-    tx.addOutput(
-      new bsv.Transaction.Output({
-        script: newLockingScript0,
-        satoshis: ScriptHelper.getDustThreshold(
-          newLockingScript0.toBuffer().length
-        ),
-      })
-    );
+    if (!reachTotalSupply) {
+      tx.addOutput(
+        new bsv.Transaction.Output({
+          script: newLockingScript0,
+          satoshis: ScriptHelper.getDustThreshold(
+            newLockingScript0.toBuffer().length
+          ),
+        })
+      );
+    }
 
     tx.addOutput(
       new bsv.Transaction.Output({
@@ -188,7 +191,7 @@ class NFT {
 
     const curInputIndex = tx.inputs.length - 1;
     const curInputSatoshis = tx.inputs[curInputIndex].output.satoshis;
-    const nftOutputSatoshis = tx.outputs[1].satoshis;
+    const nftOutputSatoshis = tx.outputs[reachTotalSupply ? 0 : 1].satoshis;
 
     let sigInfo = await ScriptHelper.signers[0].satoTxSigUTXOSpendBy(
       satotxData
